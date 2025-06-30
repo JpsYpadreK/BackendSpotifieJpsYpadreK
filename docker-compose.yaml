@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  # Redis por si acaso queremos la base de datos
+  redis:
+    image: redis:7-alpine
+    container_name: spotify-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass AppToLast2023%
+    volumes:
+      - redis-data:/data
+    networks:
+      - spotify-network
+    restart: unless-stopped
+
+  # La aplicación de Spotify
+  spotify-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: spotify-app
+    ports:
+      - "8080:8080"
+    environment:
+      # Claves de Redis para docker
+      - SPRING_DATA_REDIS_HOST=${REDIS_HOST:-0}
+      - SPRING_DATA_REDIS_PORT=${REDIS_PORT:-0}
+      - SPRING_DATA_REDIS_DATABASE=${REDIS_DATABASE:-0}
+      - SPRING_DATA_REDIS_USERNAME=${REDIS_USERNAME:-0}
+      - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD:-0}
+
+      # OAuth2 Spotify valores para la autenticación y claves para Spotify
+      - SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID:-0}
+      - SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET:-0}
+      - SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_SPOTIFY_REDIRECT_URI=${SPOTIFY_REDIRECT_URI:-0}
+
+    depends_on:
+      - redis
+    networks:
+      - spotify-network
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+
+networks:
+  spotify-network:
+    driver: bridge
